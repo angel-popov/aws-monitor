@@ -4,7 +4,7 @@ var http = require('https');
 function cr(method, path,body) {
     return new Promise((resolve,reject) => {
         var options = {
-            headers:{'authorization':'Bearer xxxxxxx'},
+            headers:{'authorization':'Bearer MDczMjdhMmU6MzNmM2IyOWM2YmZiOThlZQ=='},
             method: method,
         };
 
@@ -27,12 +27,22 @@ function cr(method, path,body) {
         });
 
     });
+    if(body!=''){
+        console.log("sending body "+body);
+        req.write(body)
+    }
     req.end();});
 }
 
 function errorDetected(err){
     console.error(err);
     return new Promise((resolve,reject)=>resolve(err));
+}
+
+function failOnFailedValidation(res){
+    if (res.filter(contains("Failed validation:")).length > 0){
+        throw new Error(res)
+    } else return res
 }
 
 function negate (predicateFunc) {
@@ -55,8 +65,15 @@ function shouldNotContain(text){ return verify('there should not be text "'+ tex
 module.exports.handler =  async (event, context, callback) => {
     return Promise.all([
         cr('GET','/api/application','')
-            .then(shouldContain ("id"))
+            .then(shouldContain ("idd"))
             .then(shouldNotContain("error")),
+        /* cr('POST','/api/application',
+                JSON.stringify({"defaultPassword":"defaultPass","name":"test",
+                "capabilities":{"voice":{"webhooks":{"eventUrl":{"httpMethod":"POST","address":"http://eventurl"},
+                "answerUrl":{"httpMethod":"POST","address":"http://answerurl"}}}}}))
+            .then(shouldContain ("id"))
+            .then(shouldNotContain("error")), */
+            
         cr('GET','/app/index.html','')
             .then(shouldContain("href=/cs/app/js/app"))
             .then(shouldNotContain("error")),
@@ -64,6 +81,7 @@ module.exports.handler =  async (event, context, callback) => {
             .then(shouldContain("href=/cs/ump/js/app"))
             .then(shouldNotContain("error"))
         ].map (p => p.catch(errorDetected))// without this, it will stop on first error
-                      )
+                        ).then(failOnFailedValidation)
+        
             ;
 }
